@@ -1,1 +1,4 @@
 /msedgedriver.exe
+/log
+/__pycache__
+test.py

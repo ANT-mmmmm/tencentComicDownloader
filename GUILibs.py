@@ -32,14 +32,14 @@ class Tabs(ttk.Frame):
         :param title: 标签页的标题
         """
         new_tab = ttk.Frame(self.tab_container)
-        new_button = ttk.Button(self.tab_bar, text=title, command=lambda idx=len(self.tabs): self.to_tab(idx))
+        new_button = ttk.Button(self.tab_bar, text=title, command=lambda idx=len(self.tabs): self.switch_to_tab(idx))
         
         self.tabs.append(new_tab)
         self.tab_buttons.append(new_button)
         
         # 如果这是第一个标签页，则自动选中它
         if len(self.tabs) == 1:
-            self.to_tab(0)
+            self.switch_to_tab(0)
         
         new_button.pack(side=tk.LEFT)
     
@@ -51,7 +51,7 @@ class Tabs(ttk.Frame):
         """
         return self.tabs
     
-    def to_tab(self, index: int):
+    def switch_to_tab(self, index: int):
         """
         切换到指定的标签页。
         

@@ -182,7 +182,7 @@ class LogSystem:
         formatter.formatTime = custom_time_format
         
         # 配置文件处理器(UTF-8编码)
-        file_handler = logging.FileHandler(log_file, mode='w', encoding='utf-8')
+        file_handler = logging.FileHandler(log_file, mode='w+', encoding='utf-8')
         file_handler.setLevel(self.LOG_FILE_LEVEL)
         file_handler.setFormatter(formatter)
         logger.addHandler(file_handler)
