@@ -67,6 +67,8 @@ class ComicDownloader:
         self.current_drivers=0
         self.headless = headless
         self.download_path=download_path
+        
+        self.initialized=False
 
         self._init_webdrivers()
         logging.info('浏览器已启动')
@@ -98,6 +100,7 @@ class ComicDownloader:
             # 等待所有浏览器实例创建完成，并将它们放入队列中
             for future in as_completed(futures):
                 self._put_webdriver(future.result())
+        self.initialized = True
     def _get_webdriver(self) -> webdriver.Edge:
         return self.web_drivers_queue.get()
 
@@ -369,7 +372,10 @@ class ComicDownloader:
         pr=lib.HTMLParser(source)
 
         chapter_title_list=index_frame.get_attribute('innerText').split('\n')
-        tag=chapter_title_list.index('APP')-1
+        try:
+            tag=chapter_title_list.index('APP')-1
+        except:
+            tag=-1
 
         chapter_title_list = [x for x in chapter_title_list if x not in ('', 'APP')]
 

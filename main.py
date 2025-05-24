@@ -36,6 +36,9 @@ class GUI:
         self.init_webdriver_thread = threading.Thread(target=self._init_webdriver)
         self.init_webdriver_thread.start()
 
+        self.current_comic_data = None
+        self.initialized = False
+
         self.root.resizable(False, False)  # 禁止缩放窗口
 
         try:  # 调用Windows API设置DPI感知
@@ -167,45 +170,15 @@ class GUI:
         text = self.main_page_entry.get()
         if text == "输入搜索关键词" or text == "":
             return None
-        self.search_thread = threading.Thread(target=self.__search, args=(text,))
+        self.search_thread = threading.Thread(target=self._search_main, args=(text,))
         self.search_thread.start()
 
-    def __search(self, text):
-        try:
-            self.current_comic_data = self.comic_downloader.search_comic(text)
-        except AttributeError as e:
-            # 搜索失败
-            logging.error(e)
-            logging.error("未初始化")
-            self.current_comic_data = None
-            self.tab_Frame.switch_to_tab(4)
-        if self.current_comic_data:
-            self.comic_downloader.get_chapters(self.current_comic_data)
-        else:
-            logging.error("未找到")
+    def to_loading_tab(self):
+        self.tab_Frame.switch_to_tab(4)
+        self.refresh_thread = threading.Thread(target=self._refresh_loop)
+        self.refresh_thread.start()
 
-    def _init_loading_tab(self):
-        root = self.tab_Frame.get_tabs()[4]
-        root.configure(border=10)
 
-        info = ttk.Label(root, text="浏览器初始化中", anchor="center")
-        info.grid(row=0, column=1, sticky="we")
-
-        def refresh(arg: ttk.Progressbar):
-            while True:
-                arg["value"] += 3
-                arg.update()
-                time.sleep(0.01)
-                if arg["value"] >= 200:
-                    arg["value"] = 0
-
-        progressbar = ttk.Progressbar(
-            root, orient="horizontal", length=100, mode="indeterminate"
-        )
-        progressbar.grid(row=1, column=1, sticky="we")
-        refresh_thread = threading.Thread(target=refresh, args=(progressbar,))
-        refresh_thread.start()
-        root.grid_columnconfigure(1, weight=1)
 
     def _init_settings_tab(self):
         root = self.tab_Frame.get_tabs()[3]
@@ -242,7 +215,75 @@ class GUI:
         self.basic_layout(root)
         empty.grid(row=1, column=1, columnspan=3, sticky="we", pady=5)
 
+    def _wait_until_webdriver_init(self):
+        while 1:
+            time.sleep(0.02)
+            try:
+                tmp=self.comic_downloader
+                del tmp
+                break
+            except:
+                pass
 
+    def _refresh_loop(self):
+        while 1:
+            time.sleep(0.1)
+            if self.tab_Frame.current_tab != 4:
+                break
+
+    def _wait_until_idle(self):
+        while 1:
+            time.sleep(0.1)
+            if self.tab_Frame.current_tab != 4 or not self.comic_downloader.is_running:
+                break
+    def _search_main(self,text):
+        
+        self.to_loading_tab()
+        self._wait_until_webdriver_init()
+        
+        self._loading_info_label.configure(text="已经初始化 搜索：\""+str(text)+'" 中')
+        
+        self.current_comic_data=self.comic_downloader.search_comic(text)
+        
+        if not self.current_comic_data:
+            self.cannot_find_comic(text)
+            return 0
+        
+        
+        self._loading_info_label.configure(text="已经找到 \""+str(self.current_comic_data.title)+'" 正在解析章节')
+        
+        self.current_chapter_list=self.comic_downloader.get_chapters(self.current_comic_data)
+        
+        self._wait_until_idle()
+        
+        self.tab_Frame.switch_to_tab(0)
+        
+    def cannot_find_comic(self,title:str):
+        logging.warning('没有找到: '+title)
+
+    def _init_loading_tab(self):
+        root = self.tab_Frame.get_tabs()[4]
+        root.configure(border=10)
+
+        self._loading_info_label = ttk.Label(root, text="浏览器初始化中", anchor="center")
+        self._loading_info_label.grid(row=0, column=1, sticky="we")
+
+        def refresh(arg: ttk.Progressbar):
+            while True:
+                arg["value"] += 3
+                arg.update()
+                time.sleep(0.01)
+                if arg["value"] >= 200:
+                    arg["value"] = 0
+
+        progressbar = ttk.Progressbar(
+            root, orient="horizontal", length=100, mode="indeterminate"
+        )
+
+        progressbar.grid(row=1, column=1, sticky="we")
+        refresh_thread = threading.Thread(target=refresh, args=(progressbar,))
+        refresh_thread.start()
+        root.grid_columnconfigure(1, weight=1)
 mg = GUI()
 
 mg.main()
